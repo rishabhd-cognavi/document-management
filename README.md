@@ -2,6 +2,23 @@
 
 A modern, responsive document management application built with Next.js, React, and TypeScript.
 
+## Project Structure
+
+## Test Users Credentials
+
+- **Admin User**: Username: admin@example.com, Password: admin
+- **Regular User**: Username: user@example.com, Password: user
+
+```
+document-management/
+├── app/               # Next.js app directory (pages, layouts)
+├── components/        # Reusable React components
+├── lib/               # Utility functions and shared logic
+├── public/            # Static assets
+├── styles/            # Global styles
+└── tests/             # Test files
+```
+
 ## Project Evaluation
 
 ### Code Quality
@@ -103,18 +120,6 @@ yarn test
 npm run test:watch
 # or
 yarn test:watch
-```
-
-## Project Structure
-
-```
-document-management/
-├── app/               # Next.js app directory (pages, layouts)
-├── components/        # Reusable React components
-├── lib/               # Utility functions and shared logic
-├── public/            # Static assets
-├── styles/            # Global styles
-└── tests/             # Test files
 ```
 
 ## Future Improvements

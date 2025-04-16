@@ -2,15 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { toast } from "sonner";
-
-interface User {
-  id: string;
-  email: string;
-  password: string; // Adding password to the User interface
-  role: "user" | "admin";
-  status: "active" | "inactive";
-  lastLogin: string;
-}
+import { User } from "./types";
 
 // No longer need separate AuthUser interface since we've added password to User
 
@@ -18,7 +10,10 @@ interface AuthContextType {
   currentUser: User | undefined;
   userList: User[];
   login: (email: string, password: string) => Promise<User | undefined>;
-  signup: (email: string, password: string) => Promise<User | undefined>;
+  signup: (
+    user: Omit<User, "id" | "lastLogin" | "status">
+  ) => Promise<User | undefined>;
+  updateUser: (updatedUser: Omit<User, "lastLogin">) => Promise<User>;
   logout: () => void;
 }
 
@@ -50,10 +45,8 @@ const mockAuth = {
   users: [...defaultUsers],
 
   login: async (email: string, password: string): Promise<User> => {
-    // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    // Find user by email and check password
     const user = mockAuth.users.find(
       (u) => u.email === email && u.password === password
     );
@@ -62,35 +55,30 @@ const mockAuth = {
       throw new Error("Invalid email or password");
     }
 
-    // Update last login time
     user.lastLogin = new Date().toISOString();
     return { ...user };
   },
 
-  signup: async (email: string, password: string): Promise<User> => {
-    // Simulate API call
+  signup: async (
+    user: Omit<User, "id" | "lastLogin" | "status">
+  ): Promise<User> => {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    // Check if user already exists
-    if (mockAuth.users.some((u) => u.email === email)) {
+    if (mockAuth.users.some((u) => u.email === user.email)) {
       throw new Error("User with this email already exists");
     }
 
-    if (password.length < 6) {
+    if (user.password.length < 6) {
       throw new Error("Password must be at least 6 characters");
     }
 
-    // Create new user
     const newUser: User = {
       id: String(mockAuth.users.length + 1),
-      email,
-      password,
-      role: "user",
+      ...user,
       status: "active",
       lastLogin: new Date().toISOString(),
     };
 
-    // Add to users collection
     mockAuth.users.push(newUser);
     return { ...newUser };
   },
@@ -104,8 +92,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | undefined>();
   const [userList, setUserList] = useState<User[]>([...mockAuth.users]);
 
-  // Load user from local storage on initial render
-  // This will only run once when the component mounts
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -124,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const user = await mockAuth.login(email, password);
       setCurrentUser(user);
       localStorage.setItem("user", JSON.stringify(user));
-      // Update the user list since login time changed
+
       setUserList([...mockAuth.users]);
       toast.success(`Welcome back, ${user.email}`);
       return user;
@@ -134,15 +120,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signup = async (email: string, password: string) => {
+  const signup = async (data: Omit<User, "id" | "lastLogin" | "status">) => {
     try {
-      const user = await mockAuth.signup(email, password);
+      const user = await mockAuth.signup(data);
       setUserList([...mockAuth.users]);
       toast.success("Account created successfully");
       return user;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Signup failed");
       return undefined;
+    }
+  };
+
+  const updateUser = async (
+    updatedUser: Omit<User, "lastLogin">
+  ): Promise<User> => {
+    console.log("Updating user:", updatedUser);
+
+    try {
+      const userIndex = mockAuth.users.findIndex(
+        (user) => user.id === updatedUser.id
+      );
+      if (userIndex === -1) {
+        throw new Error("User not found");
+      }
+
+      const updatedUserData = {
+        ...updatedUser,
+        lastLogin: mockAuth.users[userIndex].lastLogin,
+      };
+
+      mockAuth.users[userIndex] = updatedUserData;
+      setUserList([...mockAuth.users]);
+      toast.success("User updated successfully");
+      return updatedUserData;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Update failed");
+      throw error;
     }
   };
 
@@ -154,7 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ currentUser, userList, login, signup, logout }}>
+      value={{ currentUser, userList, login, signup, updateUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

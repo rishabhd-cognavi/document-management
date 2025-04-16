@@ -22,36 +22,31 @@ import { useAuth } from "@/lib/auth-provider";
 import { useRouter } from "next/navigation";
 import { Shield, UserCog } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import { toast } from "sonner";
+import SignupForm from "@/components/signupForm";
+import UserUpdateForm from "@/components/userUpdateForm";
+import { User } from "@/lib/types";
+import { format } from "date-fns";
 
-interface User {
-  id: string;
-  email: string;
-  role: "user" | "admin";
-  status: "active" | "inactive";
-  lastLogin: string;
+interface selectedUserType extends Omit<User, "lastLogin" | "role"> {
+  confirmPassword: string;
+  role: User["role"] | "";
 }
 
 export default function AdminPage() {
-  const { userList, currentUser, signup } = useAuth();
+  const { userList, currentUser } = useAuth();
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<
+    selectedUserType | undefined
+  >(undefined);
   const [formData, setFormData] = useState({
     email: "",
-    role: "",
+    role: "" as "" | "admin" | "user",
     password: "",
     confirmPassword: "",
   });
-  const [errors, setErrors] = useState({
-    email: "",
-    role: "",
-    password: "",
-    confirmPassword: "",
-  });
-  const [editMode, setEditMode] = useState(false); // Track if the modal is in edit mode
-  const [selectedUser, setSelectedUser] = useState<User | null>(null); // Track the user being edited
+
+  const [editMode, setEditMode] = useState(false);
 
   useEffect(() => {
     if (currentUser?.role !== "admin") {
@@ -59,59 +54,18 @@ export default function AdminPage() {
     }
   }, [currentUser, router]);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-    setErrors({ ...errors, [name]: "" });
-  };
-
-  const validateForm = () => {
-    const newErrors: typeof errors = {
-      email: "",
-      role: "",
-      password: "",
-      confirmPassword: "",
-    };
-
-    if (!formData.email) newErrors.email = "Email is required.";
-    if (!formData.role) newErrors.role = "Role is required.";
-    if (!formData.password) newErrors.password = "Password is required.";
-    if (formData.password.length < 6)
-      newErrors.password = "Password must be at least 6 characters.";
-    if (formData.password !== formData.confirmPassword)
-      newErrors.confirmPassword = "Passwords do not match.";
-
-    setErrors(newErrors);
-    return Object.values(newErrors).every((error) => !error);
-  };
-
   const openEditModal = (user: User) => {
     setEditMode(true);
-    setSelectedUser(user);
-    setFormData({
+    setSelectedUser({
+      id: user.id,
       email: user.email,
       role: user.role,
+      status: user.status,
       password: "",
       confirmPassword: "",
     });
-    setIsModalOpen(true);
-  };
 
-  const handleSubmit = () => {
-    if (validateForm()) {
-      if (editMode && selectedUser) {
-        toast.success("User updated successfully!");
-      } else {
-        toast.success("User added successfully!");
-      }
-      signup(formData.email, formData.password);
-      setIsModalOpen(false);
-      setFormData({ email: "", role: "", password: "", confirmPassword: "" });
-      setSelectedUser(null);
-      setEditMode(false);
-    }
+    setIsModalOpen(true);
   };
 
   return (
@@ -142,7 +96,6 @@ export default function AdminPage() {
               <Button
                 onClick={() => {
                   setEditMode(false);
-                  setSelectedUser(null);
                   setFormData({
                     email: "",
                     role: "",
@@ -186,7 +139,9 @@ export default function AdminPage() {
                         {user.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>{user.lastLogin}</TableCell>
+                    <TableCell>
+                      {format(user.lastLogin, "dd-MM-yyyy")}
+                    </TableCell>
                     <TableCell>
                       <Button
                         variant="ghost"
@@ -207,51 +162,39 @@ export default function AdminPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={editMode ? "Edit User" : "Add User"}>
-        <form>
-          <Input
-            label="Email"
-            name="email"
-            type="email"
-            placeholder="user @example.com"
-            value={formData.email}
-            onChange={handleInputChange}
-            error={errors.email}
+        {editMode ? (
+          <UserUpdateForm
+            formData={selectedUser as selectedUserType}
+            setFormData={setSelectedUser}
+            submitButtonName="Update"
+            onSubmitClose={() => {
+              setIsModalOpen(false);
+              setFormData({
+                email: "",
+                role: "",
+                password: "",
+                confirmPassword: "",
+              });
+              setEditMode(false);
+            }}
           />
-          <Select
-            label="Role"
-            name="role"
-            value={formData.role}
-            onChange={handleInputChange}
-            options={[
-              { value: "admin", label: "Admin" },
-              { value: "user", label: "User" },
-            ]}
-            error={errors.role}
+        ) : (
+          <SignupForm
+            formData={formData}
+            setFormData={setFormData}
+            submitButtonName={"Submit"}
+            onSubmitClose={() => {
+              setIsModalOpen(false);
+              setFormData({
+                email: "",
+                role: "",
+                password: "",
+                confirmPassword: "",
+              });
+              setEditMode(false);
+            }}
           />
-          <Input
-            label="Password"
-            name="password"
-            type="password"
-            placeholder="********"
-            value={formData.password}
-            onChange={handleInputChange}
-            error={errors.password}
-          />
-          <Input
-            label="Confirm Password"
-            name="confirmPassword"
-            type="password"
-            placeholder="********"
-            value={formData.confirmPassword}
-            onChange={handleInputChange}
-            error={errors.confirmPassword}
-          />
-          <span className="inline-flex items-center justify-end w-full gap-2">
-            <Button type="button" onClick={handleSubmit}>
-              {editMode ? "Update" : "Submit"}
-            </Button>
-          </span>
-        </form>
+        )}
       </Modal>
     </div>
   );

@@ -18,6 +18,7 @@ export const Input: React.FC<InputProps> = ({
     <div className="mb-4 w-full">
       <Label htmlFor={label}>{label}</Label>
       <input
+        id={label}
         {...props}
         className={cn(
           "mt-1 block w-full rounded-md border h-10 px-3 py-2 text-sm ring-offset-background",

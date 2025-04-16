@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -8,28 +7,32 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { useAuth } from "@/lib/auth-provider";
+// import { useAuth } from "@/lib/auth-provider";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import SignupForm from "@/components/signupForm";
 
 export default function SignupPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { signup } = useAuth();
+  const [formData, setFormData] = useState({
+    email: "",
+    role: "" as "" | "admin" | "user",
+    password: "",
+    confirmPassword: "",
+  });
+  // const [loading, setLoading] = useState(false);
+  // const { signup } = useAuth();
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setLoading(true);
 
-    const user = await signup(email, password);
+  //   const user = await signup(email, password);
 
-    if (user) router.push("/login");
+  //   if (user) router.push("/login");
 
-    setLoading(false);
-  };
+  //   setLoading(false);
+  // };
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
@@ -39,7 +42,7 @@ export default function SignupPage() {
           <CardDescription>Sign up to get started</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Input
                 label="Email"
@@ -65,7 +68,13 @@ export default function SignupPage() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating account..." : "Create account"}
             </Button>
-          </form>
+          </form> */}
+          <SignupForm
+            formData={formData}
+            setFormData={setFormData}
+            submitButtonName={"Create account"}
+            onSubmitClose={() => router.push("/login")}
+          />
         </CardContent>
       </Card>
     </div>
